@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="HealthCare/HealthCare.csproj" />
+  <Project Path="PatientsSeed/PatientsSeed.csproj" Id="559ed6cd-4e94-4b66-bc06-6aaa78b87a54" />
+</Solution>
