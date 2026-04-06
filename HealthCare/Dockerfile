@@ -1,5 +1,8 @@
 # runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+
+RUN apt-get update && apt-get install -y curl
+
 WORKDIR /app
 EXPOSE 8080
 

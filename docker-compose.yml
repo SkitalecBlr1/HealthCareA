@@ -20,14 +20,15 @@ services:
       dockerfile: HealthCare/Dockerfile
     container_name: healthcare-api
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
     environment:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=patients_db;Username=postgres;Password=1
     ports:
       - "5000:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -38,7 +39,8 @@ services:
       dockerfile: PatientsSeed/Dockerfile
     container_name: patients-seed
     depends_on:
-      - healthcare-api
+      healthcare-api:
+        condition: service_healthy
     environment:
       ApiSettings__BaseUrl: http://healthcare-api:8080
     restart: "no"

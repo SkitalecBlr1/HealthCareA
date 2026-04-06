@@ -13,7 +13,8 @@ namespace PatientsSeed
                 .AddEnvironmentVariables()
                 .Build();
 
-            var baseUrl = config["ApiSettings:BaseUrl"];
+            var baseUrl = Environment.GetEnvironmentVariable("ApiSettings__BaseUrl")
+             ?? "http://localhost:5000";
 
             if (string.IsNullOrWhiteSpace(baseUrl))
             {
@@ -61,7 +62,7 @@ namespace PatientsSeed
                         
             var patients = PatientGenerator.Generate(100);
 
-            Console.WriteLine($"Отправка {patients.Count} пациентов...");
+            Console.WriteLine($"Создание {patients.Count} пациентов...");
 
             foreach (var patient in patients)
             {

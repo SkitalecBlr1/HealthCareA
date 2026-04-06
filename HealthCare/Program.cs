@@ -15,7 +15,7 @@ namespace HealthCare
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -62,10 +62,37 @@ namespace HealthCare
                 options.ExampleFilters();
             });
 
+
             builder.Services.AddSwaggerExamplesFromAssemblyOf<PatientQueryExample>();
+
+            builder.Services.AddHealthChecks();
+                      
 
             var app = builder.Build();
 
+            
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                for (int i = 0; i < 10; i++)
+                {
+                    try
+                    {
+                        dbContext.Database.Migrate();
+                        Console.WriteLine("Миграции применены");
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ошибка миграции: {ex.Message}");
+                        await Task.Delay(2000);
+                    }
+                }
+            }
+            
+            app.MapGet("/health", () => Results.Ok("OK"));
             // -----------------------------
             // Middleware
             // -----------------------------
@@ -81,7 +108,7 @@ namespace HealthCare
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
+                      
             app.MapControllers();
 
             app.Run();
