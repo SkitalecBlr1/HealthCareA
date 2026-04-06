@@ -1,30 +1,87 @@
-﻿using PatientsSeed.Helpers;
+﻿using Microsoft.Extensions.Configuration;
+using PatientsSeed.Helpers;
 using System.Net.Http.Json;
 
 namespace PatientsSeed
 {
     internal class Program
     {
-        async static Task Main(string[] args)
+        static async Task Main(string[] args)
         {
-            var httpClient = new HttpClient
+            var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            var baseUrl = config["ApiSettings:BaseUrl"];
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
             {
-                BaseAddress = new Uri("http://localhost:5270") 
+                Console.WriteLine("BaseUrl не задан");
+                return;
+            }
+
+            using var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(baseUrl)
             };
 
+            Console.WriteLine($"Ждём API по адресу: {baseUrl}");
+
+            
+            var isApiReady = false;
+
+            for (int i = 0; i < 20; i++)
+            {
+                try
+                {
+                    var response = await httpClient.GetAsync("/health");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        isApiReady = true;
+                        Console.WriteLine("API готов!");
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка при проверке API: {ex.Message}");
+                }
+
+                Console.WriteLine("Ожидание API...");
+                await Task.Delay(2000);
+            }
+
+            if (!isApiReady)
+            {
+                Console.WriteLine("API не запустился. Завершаем работу.");
+                return;
+            }
+                        
             var patients = PatientGenerator.Generate(100);
+
+            Console.WriteLine($"Отправка {patients.Count} пациентов...");
 
             foreach (var patient in patients)
             {
-                var response = await httpClient.PostAsJsonAsync("/api/patients", patient);
+                try
+                {
+                    var response = await httpClient.PostAsJsonAsync("/api/patients", patient);
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"Ошибка: {response.StatusCode}");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine("Создан пациент");
+                    }
+                    else
+                    {
+                        var error = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"Ошибка: {response.StatusCode} | {error}");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    Console.WriteLine("Создан пациент");
+                    Console.WriteLine($"Ошибка при отправке: {ex.Message}");
                 }
             }
 

@@ -19,11 +19,20 @@ namespace HealthCare
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // -----------------------------
+            // Services
+            // -----------------------------
 
             builder.Services.AddControllers();
+
             builder.Services.AddValidatorsFromAssemblyContaining<CreatePatientValidator>();
-            builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            builder.Services.AddDbContext<AppDbContext>(options =>
+
+                options.UseNpgsql(
+                builder.Configuration.GetConnectionString("DefaultConnection"),
+                 o => o.EnableRetryOnFailure())
+                );
 
             builder.Services.AddScoped<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IPatientService, PatientService>();
@@ -32,25 +41,34 @@ namespace HealthCare
 
             builder.Services.AddEndpointsApiExplorer();
 
+            // -----------------------------
+            // Swagger
+            // -----------------------------
+
             builder.Services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new()
                 {
                     Title = "Patients API",
                     Version = "v1",
-                    Description = "Tes API for patients"
+                    Description = "Test API for patients"
                 });
-
 
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+
                 options.EnableAnnotations();
                 options.IncludeXmlComments(xmlPath);
                 options.ExampleFilters();
             });
+
             builder.Services.AddSwaggerExamplesFromAssemblyOf<PatientQueryExample>();
 
             var app = builder.Build();
+
+            // -----------------------------
+            // Middleware
+            // -----------------------------
 
             app.UseSwagger();
 
@@ -60,11 +78,9 @@ namespace HealthCare
                 options.RoutePrefix = "swagger"; // http://localhost:5000/swagger
             });
 
-            
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
